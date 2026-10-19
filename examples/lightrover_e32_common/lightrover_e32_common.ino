@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Drover common sketch
  *
  * This sketch controls the rover from external interfaces and publishes
@@ -65,6 +65,7 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <rmw/qos_profiles.h>
 #include <rmw_microros/rmw_microros.h>
 
 #include <std_msgs/msg/int16_multi_array.h>
@@ -122,18 +123,7 @@ rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t timer;
-static const rmw_qos_profile_t sub_last_one_profile = 
-{
-  RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-  1,
-  RMW_QOS_POLICY_RELIABILITY_RELIABLE,
-  RMW_QOS_POLICY_DURABILITY_VOLATILE,
-  RMW_QOS_DEADLINE_DEFAULT,
-  RMW_QOS_LIFESPAN_DEFAULT,
-  RMW_QOS_POLICY_LIVELINESS_SYSTEM_DEFAULT,
-  RMW_QOS_LIVELINESS_LEASE_DURATION_DEFAULT,
-  false
-};
+static rmw_qos_profile_t sub_last_one_profile;
 
 geometry_msgs__msg__Twist pubmsg_odo;
 geometry_msgs__msg__Twist submsg_twist;
@@ -190,6 +180,14 @@ micro_ros_utilities_memory_conf_t lidar_raw_msg_memory_conf(){
   return conf;
 }
 
+void configure_ros2_qos_profiles(){
+  sub_last_one_profile = rmw_qos_profile_default;
+  sub_last_one_profile.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+  sub_last_one_profile.depth = 1;
+  sub_last_one_profile.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+  sub_last_one_profile.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+}
+
 void error_loop(){
   while(1){
     static bool led_brink = true;
@@ -235,6 +233,7 @@ void check_agent(){
 
 bool ros2_init(){
   allocator = rcl_get_default_allocator();
+  configure_ros2_qos_profiles();
   Serial.println("FIN rcl_get_default_allocator");
 
   // Create init options and set ROS 2 Domain ID.
